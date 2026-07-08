@@ -3,6 +3,7 @@ import torch
 import torch.optim as optim
 import torch.nn as nn
 from torchvision.models import mobilenet_v3_small, MobileNet_V3_Small_Weights
+from config import device
 
 class Normalize(nn.Module):
     def __init__(self, mean, std):
@@ -25,7 +26,8 @@ class User:
         self.user_id = user_id
         self.dataloader = dataloader
         self.model = mobilenet_v3_small(weights=MobileNet_V3_Small_Weights.DEFAULT)
-        self.model.fc = nn.Linear(512, 10)
+        self.model = self.model.to(device)
+        self.model.fc = nn.Linear(512, 10).to(device)
         self.loss_fn = nn.CrossEntropyLoss()
         self.opt = optim.Adam(self.model.parameters(), lr=1e-2)
 
@@ -39,6 +41,9 @@ class User:
         for batch_idx, (images, labels) in enumerate(self.dataloader):
             if batch_idx > 64:
                 break
+
+            images = images.to(device)#send to gpu
+            labels = labels.to(device)
 
             pred = self.model(norm(images))
             pred_labels = pred.argmax(dim=1)
@@ -79,6 +84,9 @@ class SuperiorClient(User):
         for batch_idx, (images, labels) in enumerate(dataloader):
             if batch_idx > 64:
                 break
+            
+            images = images.to(device)#send to gpu
+            labels = labels.to(device)
 
             pred = self.model(norm(images))
             pred_labels = pred.argmax(dim=1)

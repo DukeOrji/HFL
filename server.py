@@ -3,12 +3,14 @@ import torch.nn as nn
 import torch.optim as optim
 import torch
 from user import norm
+from config import device
 from torchvision.models import mobilenet_v3_small, MobileNet_V3_Small_Weights
 
 class Server:
     def __init__(self):
         self.global_model = mobilenet_v3_small(weights=MobileNet_V3_Small_Weights.DEFAULT)
-        self.global_model.fc = nn.Linear(512, 10)
+        self.global_model = self.global_model.to(device)
+        self.global_model.fc = nn.Linear(512, 10).to(device)
         self.loss_fn = nn.CrossEntropyLoss()
         
 
@@ -51,6 +53,8 @@ class Server:
         with torch.no_grad():
             for images, labels in dataloader:
 
+                images = images.to(device)#send to gpu
+                labels = labels.to(device)
                 pred = self.global_model(norm(images))
                 pred_labels = pred.argmax(dim=1)
 

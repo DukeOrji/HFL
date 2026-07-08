@@ -3,6 +3,7 @@ from ds import load_cifar
 import torch
 from server import Server
 from user import User, SuperiorClient
+from config import device
 from torch.utils.data import random_split
 
 
@@ -22,7 +23,7 @@ server = Server()
 
 
 rng_num = 5
-
+print(next(server.global_model.parameters()).device) #print gpu or cpu
 for epoch in range(rng_num):
     print(f"\nRound: {epoch+1}")
     #server broadcast weight
