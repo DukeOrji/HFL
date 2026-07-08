@@ -29,7 +29,7 @@ class User:
         self.model = self.model.to(device)
         self.model.fc = nn.Linear(512, 10).to(device)
         self.loss_fn = nn.CrossEntropyLoss()
-        self.opt = optim.Adam(self.model.parameters(), lr=1e-2)
+        self.opt = optim.Adam(self.model.parameters(), lr=1e-3)
 
     def train(self):
         self.model.train()
@@ -71,38 +71,3 @@ class User:
 
         self.model.load_state_dict(global_weight)
 
-class SuperiorClient(User):
-
-
-    def train(self, dataloader):
-        self.model.train()
-        correct = 0
-        total = 0
-        losses = []
-
-
-        for batch_idx, (images, labels) in enumerate(dataloader):
-            if batch_idx > 64:
-                break
-            
-            images = images.to(device)#send to gpu
-            labels = labels.to(device)
-
-            pred = self.model(norm(images))
-            pred_labels = pred.argmax(dim=1)
-
-            loss = self.loss_fn(pred, labels)
-
-            #back propagation
-            self.opt.zero_grad()
-            loss.backward() 
-            self.opt.step()
-            losses.append(loss.item())
-
-            correct += (pred_labels == labels).sum().item()
-            total += labels.size(0)
-
-            acc = round(correct/total, 2)
-            avg_loss = round(sum(losses)/len(losses), 2)
-
-        return avg_loss, acc

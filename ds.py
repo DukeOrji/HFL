@@ -32,18 +32,6 @@ def load_cifar(num_clients):
     ) for dataset in user_dataset]
 
 
-    #superior dataset to facilitate secondhand training
-    sd = len(small_dataset)//4
-    sup_dataset = random_split(
-        small_dataset,
-        [sd for _ in range(4)]
-    )
-    sup_dataloader = [DataLoader(
-        dataset,
-        batch_size=32,
-        shuffle=True
-    ) for dataset in sup_dataset]
-
     #test dataset
     cifar_test = datasets.CIFAR10(
         root= "./data",
@@ -58,4 +46,4 @@ def load_cifar(num_clients):
         shuffle=False
     )
 
-    return user_dataloader, test_loader, sup_dataloader
+    return user_dataloader, test_loader

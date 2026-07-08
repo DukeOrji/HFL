@@ -17,6 +17,11 @@ class Server:
     def broadcast_weight(self):
         return self.global_model.state_dict()
 
+    def aggregate2(self, user_weights):
+        
+
+
+
     def aggregate(self, user_weights):
         avg_weights = {}
 
@@ -34,12 +39,9 @@ class Server:
                 avg_weights[key] = user_weights[0][key].clone()
 
         self.global_model.load_state_dict(avg_weights)
+        
         return self.global_model.state_dict()
-
-
-    def set_weight(self, final_weight):
-        self.global_model.load_state_dict(final_weight)
-        print("global weight set successfully")
+        
 
     
 

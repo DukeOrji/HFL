@@ -4,6 +4,7 @@ import torch
 from server import Server
 from user import User
 from config import device
+import random
 from torch.utils.data import random_split
 
 
@@ -29,43 +30,38 @@ for epoch in range(rng_num):
     #server broadcast weight
     global_weight = server.broadcast_weight()
 
-    #clients train on global weigth
     for user in users:
         user.set_weight(global_weight)
         loss, acc = user.train()
+        
         print(f"Client: {user.user_id}  |  Loss: {loss}  |  Acc: {acc}")
-
 
     user_weights = [
         user.get_weight()
         for user in users
     ]
 
-    #split updates into 4 groups
     group_updates = random_split(
         user_weights,
-        [5, 5, 5, 5]
+        [4,4,4,4,4]
     )
-    print("\nClient groups initialized...")
 
     group_weigths = []
-    #aggregate group updates and store
-    for idx, weights in enumerate(group_updates):
-        agg_update = server.aggregate(weights)
-        group_weigths.append(agg_update)
-    print("group aggregation complete...\n")    
+    for idx, weight in enumerate(group_updates):
+        agg_upd = server.aggregate(weight)
+        group_weigths.append(agg_upd)
 
+    improved_w = []
+    for i in range(len(group_weigths)):
+        selected_w = random.sample(group_weigths, 3)
+        improved_w.append(server.aggregate(selected_w))
 
-    #aggregate group weights and pass to global model
-    server.aggregate(group_weigths)
+    server.aggregate(random.sample(improved_w, 3))
     print("global weight set successfully")
     global_loss, global_acc = server.evaluate(test_loader)
     print(f"\nGlobal Loss: {global_loss}  |  Global Acc: {global_acc}")
 
-
-    new_global_weights = server.broadcast_weight()
-    for user in users:
-        user.set_weight(new_global_weights)
+   
     
     if epoch < rng_num-1:
         print("Next Round ...")
