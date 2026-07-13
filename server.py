@@ -1,72 +1,84 @@
 #server.py
-import torch.nn as nn
-import torch.optim as optim
 import torch
-from user import norm
-from config import device
+import torch.nn as nn
+
 from torchvision.models import mobilenet_v3_small, MobileNet_V3_Small_Weights
+
+from config import device
+from user import norm
+
 
 class Server:
     def __init__(self):
+        
         self.global_model = mobilenet_v3_small(weights=MobileNet_V3_Small_Weights.DEFAULT)
         self.global_model = self.global_model.to(device)
-        self.global_model.fc = nn.Linear(512, 10).to(device)
+        self.global_model.classifier[-1] = nn.Linear(self.global_model.classifier[-1].in_features, 10).to(device) #align classifier with cifar classes
         self.loss_fn = nn.CrossEntropyLoss()
-        
+        print(self.global_model.classifier)
 
+        
     def broadcast_weight(self):
         return self.global_model.state_dict()
 
-    def aggregate2(self, user_weights):
-        
 
+    def aggregate(self, client_weights):
 
-
-    def aggregate(self, user_weights):
         avg_weights = {}
 
-        for key in user_weights[0].keys():
-            if user_weights[0][key].dtype == torch.float32:
-                weighted_sum = torch.zeros_like(user_weights[0][key])
+        for key in client_weights[0]:
 
-                for idx, weights in enumerate(user_weights):
-                    weighted_sum += weights[key]
+            if client_weights[0][key].dtype.is_floating_point:
 
-                avg_weights[key] = weighted_sum / len(user_weights)
+                avg = torch.zeros_like(client_weights[0][key])
+
+                for weights in client_weights:
+                    avg += weights[key]
+
+                avg /= len(client_weights)
+
+                avg_weights[key] = avg
 
             else:
-                # Copy non-trainable parameters directly
-                avg_weights[key] = user_weights[0][key].clone()
+
+                avg_weights[key] = client_weights[0][key].clone()
 
         self.global_model.load_state_dict(avg_weights)
-        
-        return self.global_model.state_dict()
-        
 
-    
+
+    def set_weight(self, weight):
+
+        self.global_model.load_state_dict(weight)
+
+    def predict(self, images):
+        self.global_model.eval()
+        with torch.no_grad():
+            pred = self.global_model(norm(images))
+            pred_labels = pred.argmax(dim=1)
+        return pred_labels
 
     def evaluate(self, dataloader):
-        self.global_model.eval()
+
+        total = 0
+        correct = 0
+
         losses = []
 
-        correct = 0
-        total = 0
-
         with torch.no_grad():
+            model.eval()
+
             for images, labels in dataloader:
 
-                images = images.to(device)#send to gpu
+                images = images.to(device)
                 labels = labels.to(device)
                 pred = self.global_model(norm(images))
                 pred_labels = pred.argmax(dim=1)
 
-                loss = self.loss_fn(pred, labels).item()
+                loss = self.loss_fn(pred, labels)
+                losses.append(loss.item())
                 correct += (pred_labels == labels).sum().item()
                 total += labels.size(0)
-                
-                losses.append(loss)
 
             acc = round(correct/total, 2)
-            avg_loss = round(sum(losses)/len(losses), 2)
-        
+            avg_loss = mean(losses).round(2)
         return avg_loss, acc

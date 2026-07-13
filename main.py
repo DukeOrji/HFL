@@ -3,9 +3,9 @@ from ds import load_cifar
 import torch
 from server import Server
 from user import User
-from config import device
-from torch.utils.data import random_split
-
+from config import device, SAVE
+import random
+import os
 
 
 
@@ -19,7 +19,8 @@ users = [User(i, user_dataloader[i]) for i in range(num_clients)]
 
 
 server = Server()
-
+round_metrics = []
+results = []
 
 
 rng_num = 25
@@ -42,37 +43,53 @@ for epoch in range(rng_num):
     ]
 
     #split updates into 4 groups
-    group_updates = random_split(
-        user_weights,
-        [5, 5, 5, 5]
-    )
+
+
+    random.shuffle(user_weights)
+
+    group_updates = [
+        user_weights[0:5],
+        user_weights[5:10],
+        user_weights[10:15],
+        user_weights[15:20],
+    ]
     print("\nClient groups initialized...")
 
-    group_weigths = []
+
+    group_weights = []
     #aggregate group updates and store
     for idx, weights in enumerate(group_updates):
         agg_update = server.aggregate(weights)
-        group_weigths.append(agg_update)
+        group_weights.append(agg_update)
     print("group aggregation complete...\n")    
 
 
     #aggregate group weights and pass to global model
-    server.aggregate(group_weigths)
+    server.aggregate(random.sample(group_weights, 3))
     print("global weight set successfully")
     global_loss, global_acc = server.evaluate(test_loader)
     print(f"\nGlobal Loss: {global_loss}  |  Global Acc: {global_acc}")
 
-
-    new_global_weights = server.broadcast_weight()
-    for user in users:
-        user.set_weight(new_global_weights)
     
     if epoch < rng_num-1:
         print("Next Round ...")
     else:
         print("Experiment Complete.")    
 
-    
+
+if SAVE:
+
+    attack = ""
+    defense = ""
+    save_dir = f"feedback/{defense}/{attack}"
+
+    os.makedirs(save_dir, exist_ok=True)
+
+    df = pd.DataFrame(results)
+    df.to_csv(
+        f"{save_dir}/results.csv",
+        index=False
+    )   
     
 
 
