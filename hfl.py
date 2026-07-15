@@ -65,8 +65,10 @@ for epoch in range(rng_num):
 
 
     #aggregate group weights and pass to global model
-    server.aggregate(random.sample(group_weights, 3))
+    final_weight = server.aggregate(random.sample(group_weights))
+    server.set_weight(final_weight)
     print("global weight set successfully")
+
     global_loss, global_acc = server.evaluate(test_loader)
     print(f"\nGlobal Loss: {global_loss}  |  Global Acc: {global_acc}")
 

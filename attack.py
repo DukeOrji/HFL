@@ -1,5 +1,9 @@
 from user import User, norm
+import torch
 from config import device, batch_size
+from server import Server
+
+
 
 class LabelPoison(User):
     def train(self):
@@ -40,31 +44,31 @@ class LabelPoison(User):
 
 
 class WeightMan(User):
-    def get_weight(self):
+    def get_weight(self, global_weight):
         weights = {
             k: v.clone()
             for k, v in self.model.state_dict().items()
         }
 
         for key in weights:
-            if weights[key].dtype == torch.float32:
-                weights[key] *= 2
-
+            if weights[key].dtype.is_floating_point:
+                update = weights[key] - global_weight[key]
+                mal_update = 3 *update
+                weights[key] = global_weight[key] + mal_update
+                
         return weights
 
 
 class SignFlip(User):
-    def get_weight(self):
+    def get_weight(self, global_weight):
         weights = {
             k: v.clone()
             for k, v in self.model.state_dict().items()
         }
-        
+
         for key in weights:
-            if weihgts[key].dtype == torch.float32:
-                update = (weights[key] - self.global_weight[key])
-                mal_update  = -3 * update
-                weights[key] = (self.global_weights[key] + mal_update)
+            if weights[key].dtype.is_floating_point:
+                update = weights[key] - global_weight[key]
+                weights[key] = global_weight[key] - 2 * update
 
         return weights
-                

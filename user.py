@@ -29,7 +29,7 @@ class User:
         self.model = self.model.to(device)
         self.model.classifier[-1] = nn.Linear(self.model.classifier[-1].in_features, 10).to(device)#align classifier with cifar classes
         self.loss_fn = nn.CrossEntropyLoss()
-        self.opt = optim.Adam(self.model.parameters(), lr=1e-3)
+        self.opt = optim.SGD(self.model.parameters(), lr=1e-2)
 
     def train(self):
         self.model.train()
@@ -64,7 +64,7 @@ class User:
 
         return avg_loss, acc
 
-    def get_weight(self):
+    def get_weight(self, global_weight=None):
         return self.model.state_dict()
 
     def set_weight(self, global_weight):
