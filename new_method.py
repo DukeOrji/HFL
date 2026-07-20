@@ -6,10 +6,11 @@ from user import User
 from config import device, SAVE
 import random
 import os
+import pandas as pd
 
 
 
-num_clients = 20
+num_clients = 50
 user_dataloader, test_loader = load_cifar(num_clients)
 
 
@@ -19,11 +20,11 @@ users = [User(i, user_dataloader[i]) for i in range(num_clients)]
 
 
 server = Server()
-round_metrics = []
+
 results = []
 
 
-rng_num = 25
+rng_num = 50
 print(next(server.global_model.parameters()).device) #print gpu or cpu
 for epoch in range(rng_num):
     print(f"\nRound: {epoch+1}")
@@ -43,10 +44,16 @@ for epoch in range(rng_num):
     ]
 
 
-    final_weight = server.new_method(user_weights)
+    final_weight = server.FedSel(user_weights)
     server.set_weight(final_weight)
     global_loss, global_acc = server.evaluate(test_loader)
     print(f"\nGlobal Loss: {global_loss}  |  Global Acc: {global_acc}")
+
+    results.append({
+        "Round": epoch + 1,
+        "Global Loss": global_loss,
+        "Global Accuracy": global_acc
+    })
 
     
     if epoch < rng_num-1:
@@ -58,8 +65,8 @@ for epoch in range(rng_num):
 if SAVE:
 
     attack = ""
-    defense = ""
-    save_dir = f"feedback/{defense}/{attack}"
+    defense = "FedSel"
+    save_dir = f"feedback/{defense}"
 
     os.makedirs(save_dir, exist_ok=True)
 

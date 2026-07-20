@@ -1,5 +1,6 @@
 data/
 venv/
 text.md
+feedback/
 __pycache__/
 *.pyc

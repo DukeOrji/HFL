@@ -23,17 +23,17 @@ results = []
 users = [User(i, user_dataloader[i]) for i in range(num_clients - num_attackers)]
 
 users.extend(
-    SignFlip(i, user_dataloader[i])
+    LabelPoison(i, user_dataloader[i])
     for i in range(num_clients - num_attackers, num_clients)
 )
 
 attack_type = {
-    14: "SF",
-    15: "SF",
-    16: "SF",
-    17: "SF",
-    18: "SF",
-    19: "SF",
+    14: "LP",
+    15: "LP",
+    16: "LP",
+    17: "LP",
+    18: "LP",
+    19: "LP",
 }
 
 

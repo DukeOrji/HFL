@@ -21,42 +21,45 @@ class Server:
     def broadcast_weight(self):
         return self.global_model.state_dict()
 
-    def new_method(self, client_weights):
+    def FedSel(self, client_weights):
         global_weights = self.global_model.state_dict()
         client_info = []
 
         for idx, weights in enumerate(client_weights):
             total_distance = 0
-            update = {}
+            client_update = {}
 
             for key in weights.keys():
 
                 if weights[key].dtype.is_floating_point:
 
                     delta = weights[key] - global_weights[key]
-                    update[key] = delta
+                    client_update[key] = delta
 
                     total_distance += delta.norm().item()
 
                 else:
-                    update[key] = weights[key].clone()
+                    client_update[key] = weights[key].clone()
 
             client_info.append({
                 "idx": idx,
                 "distance": total_distance,
-                "update": update
+                "update": client_update
             })
-
+        
+        #sort clients by distance to global model
         client_info.sort(key=lambda x: x["distance"])
 
         selected = []
 
+        #select the 3 closest, 1 median, and 2nd farthest client
         selected.extend(client_info[:3])
         selected.append(client_info[len(client_info) // 2])
-        selected.extend(client_info[-2:])
+        selected.append(client_info[-2])
 
         avg_update = {}
 
+        #aggregate the updates from the selected clients
         for key in global_weights.keys():
 
             if global_weights[key].dtype.is_floating_point:
@@ -83,8 +86,7 @@ class Server:
             else:
                 new_weights[key] = global_weights[key].clone()
 
-        self.global_model.load_state_dict(new_weights)
-
+        return new_weights
 
 
 
@@ -185,5 +187,5 @@ class Server:
                 total += labels.size(0)
 
             acc = round(correct/total, 2)
-            avg_loss = mean(losses).round(2)
+            avg_loss = round(mean(losses), 3)
         return avg_loss, acc
